@@ -1,0 +1,477 @@
+{% extends "base.html" %}
+
+{% block title %}{{ symbol }} Details - Trading Dashboard{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>{{ symbol }} Trading Details</h1>
+</div>
+
+<!-- Summary Cards Row -->
+<div class="row mb-4">
+    <!-- Account Balance Card -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Account Balance</div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <div class="small">Total Balance</div>
+                        <div class="h4">${{ "%.2f"|format(account_balance.total) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small">Available</div>
+                        <div class="h4">${{ "%.2f"|format(account_balance.available) }}</div>
+                    </div>
+                </div>
+                <hr>
+                <div class="row mt-3">
+                    <div class="col-6">
+                        <div class="small">Initial Investment</div>
+                        <div>${{ "%.2f"|format(performance.initial) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small">Return</div>
+                        <div class="{% if performance.profit > 0 %}text-success{% elif performance.profit < 0 %}text-danger{% endif %}">
+                            {{ "%.2f"|format(performance.profit_percentage) }}% ({{ "$%.2f"|format(performance.profit) }})
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Trading Stats Card -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Trading Statistics</div>
+            <div class="card-body">
+                {% if stats %}
+                <div class="row text-center">
+                    <div class="col">
+                        <div class="h4">{{ stats.trade_count }}</div>
+                        <div class="small">Total Trades</div>
+                    </div>
+                    <div class="col">
+                        <div class="h4 text-success">{{ stats.profitable_trades }}</div>
+                        <div class="small">Win Trades</div>
+                    </div>
+                    <div class="col">
+                        <div class="h4 text-danger">{{ stats.loss_trades }}</div>
+                        <div class="small">Loss Trades</div>
+                    </div>
+                </div>
+                
+                {% if stats.trade_count and stats.trade_count > 0 %}
+                <div class="progress mt-3" style="height: 8px;">
+                    {% set win_rate = (stats.profitable_trades / stats.trade_count * 100) %}
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ win_rate }}%;" 
+                         aria-valuenow="{{ win_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="small text-center mt-1">Win Rate: {{ "%.1f"|format(win_rate) }}%</div>
+                {% endif %}
+                
+                <hr>
+                
+                <div class="text-center mt-3">
+                    <div class="small">Total PnL</div>
+                    <div class="h4 {% if stats.total_pnl > 0 %}text-success{% elif stats.total_pnl < 0 %}text-danger{% endif %}">
+                        {{ "%.4f"|format(stats.total_pnl) }}
+                    </div>
+                </div>
+                
+                {% if stats.avg_pnl %}
+                <div class="text-center mt-2">
+                    <div class="small">Average PnL per Trade</div>
+                    <div class="{% if stats.avg_pnl > 0 %}text-success{% elif stats.avg_pnl < 0 %}text-danger{% endif %}">
+                        {{ "%.4f"|format(stats.avg_pnl) }}
+                    </div>
+                </div>
+                {% endif %}
+                
+                {% else %}
+                <div class="text-center py-4">
+                    <div class="text-muted">No trading statistics available</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Current Position Card -->
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">Current Position</div>
+            <div class="card-body">
+                {% if trades and trades|length > 0 and trades[0].orderStatus == 'CLOSED' %}
+                <div class="text-center py-4">
+                    <div class="h4">No Active Position</div>
+                    <div class="small text-muted">Last position was closed at {{ trades[0].executionTime.strftime('%Y-%m-%d %H:%M:%S') }}</div>
+                </div>
+                {% elif trades and trades|length > 0 and trades[0].orderStatus != 'CLOSED' %}
+                <div class="text-center">
+                    <div class="badge {% if trades[0].positionType == 'long' %}position-long{% elif trades[0].positionType == 'short' %}position-short{% endif %} mb-2" style="font-size: 1rem;">
+                        {{ trades[0].positionType|upper }}
+                    </div>
+                </div>
+                
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="small">Entry Price</div>
+                        <div>${{ "%.2f"|format(trades[0].price) }}</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small">Quantity</div>
+                        <div>{{ trades[0].quantity }}</div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row text-center mt-2">
+                    <div class="col-6">
+                        <div class="small">Take Profit</div>
+                        <div class="text-success">
+                            {% if trades[0].takeProfit %}
+                                ${{ "%.2f"|format(trades[0].takeProfit) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small">Stop Loss</div>
+                        <div class="text-danger">
+                            {% if trades[0].stopLoss %}
+                                ${{ "%.2f"|format(trades[0].stopLoss) }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row text-center mt-3">
+                    <div class="col-6">
+                        <div class="small">Leverage</div>
+                        <div>{{ trades[0].leverage }}x</div>
+                    </div>
+                    <div class="col-6">
+                        <div class="small">Order Type</div>
+                        <div>{{ trades[0].orderType }}</div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="text-center py-4">
+                    <div class="text-muted">No position data available</div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-lg-8">
+        <!-- Trade History Card -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Trade History</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>Leverage</th>
+                                <th>PnL</th>
+                                <th>Status</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in trades %}
+                            <tr class="trade-row {{ trade.positionType }}">
+                                <td>
+                                    <span class="badge {% if trade.positionType == 'long' %}position-long{% elif trade.positionType == 'short' %}position-short{% endif %}">
+                                        {{ trade.positionType }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(trade.price) }}</td>
+                                <td>{{ trade.quantity }}</td>
+                                <td>{{ trade.leverage }}x</td>
+                                <td class="{% if trade.pnl > 0 %}text-success{% elif trade.pnl < 0 %}text-danger{% endif %}">
+                                    {% if trade.pnl %}
+                                        {{ "%.4f"|format(trade.pnl) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge {% if trade.orderStatus == 'FILLED' %}bg-success{% elif trade.orderStatus == 'CANCELED' %}bg-warning{% else %}bg-info{% endif %}">
+                                        {{ trade.orderStatus }}
+                                    </span>
+                                </td>
+                                <td>{{ trade.executionTime.strftime('%Y-%m-%d %H:%M:%S') if trade.executionTime else '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center">No trades found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Chart Card -->
+        <div class="card">
+            <div class="card-header">
+                <span>Cumulative PnL</span>
+            </div>
+            <div class="card-body">
+                <canvas id="pnlChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-lg-4">
+        <!-- Recent Decisions Card -->
+        <div class="card mb-4">
+            <div class="card-header">Recent Decisions</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for decision in decisions %}
+                    <div class="list-group-item" style="background-color: transparent; border-color: var(--border-color);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ decision.occurUtcDate.strftime('%Y-%m-%d %H:%M:%S') }}</small>
+                            <span class="badge {% if decision.eventPos == 'long' %}position-long{% elif decision.eventPos == 'short' %}position-short{% else %}position-none{% endif %}">
+                                {{ decision.eventPos or 'close' }}
+                            </span>
+                        </div>
+                        <div class="mt-1">
+                            <span>{{ decision.eventName }}</span>
+                        </div>
+                        {% if decision.prAnswer %}
+                        <div class="small mt-1">
+                            Answer: <span class="{% if decision.prAnswer == 'yes' %}text-success{% else %}text-danger{% endif %}">{{ decision.prAnswer }}</span>
+                        </div>
+                        {% endif %}
+                        {% if decision.entryPrice and decision.currentPrice %}
+                        <div class="small mt-1">
+                            Entry: ${{ "%.2f"|format(decision.entryPrice) }} | Current: ${{ "%.2f"|format(decision.currentPrice) }}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="list-group-item" style="background-color: transparent; border-color: var(--border-color);">
+                        No recent decisions
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Monthly Summary Card -->
+        <div class="card">
+            <div class="card-header">Monthly Summary</div>
+            <div class="card-body">
+                <canvas id="monthlyChart" height="200"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // PnL Chart
+        const pnlCtx = document.getElementById('pnlChart').getContext('2d');
+        
+        // Create dummy data for demonstration
+        // In a real application, this would come from an API
+        const labels = [];
+        const pnlData = [];
+        let cumulativePnl = 0;
+        
+        // Generate last 30 days
+        for (let i = 30; i >= 0; i--) {
+            const date = new Date();
+            date.setDate(date.getDate() - i);
+            labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+            
+            // Random PnL between -0.5 and 0.5
+            const dailyPnl = (Math.random() - 0.45) * 0.5;
+            cumulativePnl += dailyPnl;
+            pnlData.push(cumulativePnl);
+        }
+        
+        const pnlChart = new Chart(pnlCtx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Cumulative PnL',
+                    data: pnlData,
+                    borderColor: pnlData[pnlData.length - 1] >= 0 ? '#4caf50' : '#d32f2f',
+                    backgroundColor: pnlData[pnlData.length - 1] >= 0 ? 'rgba(76, 175, 80, 0.1)' : 'rgba(211, 47, 47, 0.1)',
+                    tension: 0.3,
+                    fill: true,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0a0a0'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0a0a0'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Cumulative PnL',
+                            color: '#e0e0e0'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Monthly Chart
+        const monthlyCtx = document.getElementById('monthlyChart').getContext('2d');
+        
+        // Create month labels for the last 6 months
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthLabels = [];
+        const monthlyPnlData = [];
+        const monthlyTradeCountData = [];
+        
+        const currentDate = new Date();
+        const currentMonth = currentDate.getMonth();
+        
+        for (let i = 5; i >= 0; i--) {
+            const monthIndex = (currentMonth - i + 12) % 12;
+            monthLabels.push(monthNames[monthIndex]);
+            
+            // Random values for demonstration
+            monthlyPnlData.push((Math.random() - 0.4) * 2);
+            monthlyTradeCountData.push(Math.floor(Math.random() * 20) + 1);
+        }
+        
+        const monthlyChart = new Chart(monthlyCtx, {
+            type: 'bar',
+            data: {
+                labels: monthLabels,
+                datasets: [
+                    {
+                        label: 'Monthly PnL',
+                        data: monthlyPnlData,
+                        backgroundColor: monthlyPnlData.map(value => value >= 0 ? 'rgba(76, 175, 80, 0.6)' : 'rgba(211, 47, 47, 0.6)'),
+                        borderColor: monthlyPnlData.map(value => value >= 0 ? 'rgba(76, 175, 80, 1)' : 'rgba(211, 47, 47, 1)'),
+                        borderWidth: 1
+                    },
+                    {
+                        label: 'Trade Count',
+                        data: monthlyTradeCountData,
+                        type: 'line',
+                        yAxisID: 'y1',
+                        borderColor: '#2196f3',
+                        backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        fill: false
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: {
+                        position: 'top',
+                        labels: {
+                            color: '#e0e0e0'
+                        }
+                    },
+                    tooltip: {
+                        mode: 'index',
+                        intersect: false
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0a0a0'
+                        }
+                    },
+                    y: {
+                        grid: {
+                            color: 'rgba(255, 255, 255, 0.1)'
+                        },
+                        ticks: {
+                            color: '#a0a0a0'
+                        },
+                        title: {
+                            display: true,
+                            text: 'PnL',
+                            color: '#e0e0e0'
+                        }
+                    },
+                    y1: {
+                        position: 'right',
+                        grid: {
+                            drawOnChartArea: false
+                        },
+                        ticks: {
+                            color: '#a0a0a0'
+                        },
+                        title: {
+                            display: true,
+                            text: 'Trade Count',
+                            color: '#e0e0e0'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // Add win/loss ratio doughnut chart if needed
+        // This would require additional data from the backend
+        
+        // Add event listeners for interactive elements
+        // For example, to toggle between different timeframes or metrics
+    });
+</script>
+{% endblock %}

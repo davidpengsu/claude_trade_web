@@ -1,0 +1,302 @@
+{% extends "base.html" %}
+
+{% block title %}Data Explorer - Trading Dashboard{% endblock %}
+
+{% block extra_head %}
+<style>
+    /* Custom styles for the data explorer */
+    .table-container {
+        overflow-x: auto;
+    }
+    
+    .data-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .data-table th {
+        position: sticky;
+        top: 0;
+        background-color: #1a1a1a;
+        z-index: 10;
+    }
+    
+    .data-table th, .data-table td {
+        padding: 8px 12px;
+        text-align: left;
+        white-space: nowrap;
+    }
+    
+    .data-table tr:hover {
+        background-color: rgba(255, 255, 255, 0.05);
+    }
+    
+    .data-table td.json-cell {
+        max-width: 300px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    
+    .json-cell:hover {
+        cursor: pointer;
+    }
+    
+    .json-view-modal .modal-content {
+        background-color: var(--bg-card);
+        color: var(--text-primary);
+    }
+    
+    .json-view-modal .modal-header {
+        border-bottom-color: var(--border-color);
+    }
+    
+    .json-view-modal .modal-footer {
+        border-top-color: var(--border-color);
+    }
+    
+    .json-view-modal pre {
+        background-color: #0d0d0d;
+        padding: 15px;
+        border-radius: 5px;
+        max-height: 500px;
+        overflow-y: auto;
+    }
+    
+    .table-pagination {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-top: 20px;
+    }
+    
+    .page-link {
+        background-color: var(--bg-card);
+        border-color: var(--border-color);
+        color: var(--text-primary);
+    }
+    
+    .page-link:hover {
+        background-color: var(--accent-color);
+        color: #fff;
+    }
+    
+    .page-item.active .page-link {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+    
+    .page-item.disabled .page-link {
+        background-color: var(--bg-dark);
+        color: var(--text-secondary);
+    }
+    
+    .table-filter {
+        background-color: var(--bg-card);
+        padding: 15px;
+        border-radius: 5px;
+        margin-bottom: 20px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h1>Data Explorer</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-3">
+        <div class="card mb-4">
+            <div class="card-header">Database Tables</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for table in tables %}
+                    <a href="{{ url_for('data', table=table) }}" 
+                       class="list-group-item list-group-item-action {% if table == selected_table %}active{% endif %}"
+                       style="background-color: {% if table == selected_table %}var(--accent-color){% else %}transparent{% endif %}; 
+                              border-color: var(--border-color);">
+                        {{ table }}
+                    </a>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">Filters</div>
+            <div class="card-body">
+                <form id="filter-form" action="{{ url_for('data') }}" method="get">
+                    <input type="hidden" name="table" value="{{ selected_table }}">
+                    
+                    <div class="mb-3">
+                        <label for="filter-column" class="form-label">Column</label>
+                        <select class="form-select" id="filter-column" name="filter_column">
+                            <option value="">-- Select Column --</option>
+                            {% for column in columns %}
+                            <option value="{{ column }}" {% if request.args.get('filter_column') == column %}selected{% endif %}>
+                                {{ column }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="filter-value" class="form-label">Value</label>
+                        <input type="text" class="form-control" id="filter-value" name="filter_value"
+                               value="{{ request.args.get('filter_value', '') }}">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="limit" class="form-label">Rows per page</label>
+                        <select class="form-select" id="limit" name="limit">
+                            <option value="50" {% if request.args.get('limit') == '50' %}selected{% endif %}>50</option>
+                            <option value="100" {% if request.args.get('limit', '100') == '100' %}selected{% endif %}>100</option>
+                            <option value="250" {% if request.args.get('limit') == '250' %}selected{% endif %}>250</option>
+                            <option value="500" {% if request.args.get('limit') == '500' %}selected{% endif %}>500</option>
+                        </select>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+                    
+                    {% if request.args.get('filter_column') %}
+                    <a href="{{ url_for('data', table=selected_table) }}" class="btn btn-outline-secondary w-100 mt-2">
+                        Clear Filters
+                    </a>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-9">
+        <div class="card">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <span>{{ selected_table }}</span>
+                    <span class="badge bg-secondary">{{ rows|length }} rows</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                {% for column in columns %}
+                                <th>{{ column }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr>
+                                {% for column in columns %}
+                                <td {% if 'info' in column.lower() or 'request' in column.lower() or 'response' in column.lower() %}
+                                        class="json-cell" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#jsonModal" 
+                                        data-json="{{ row[column]|tojson|forceescape if row[column] else '' }}"
+                                        data-title="{{ column }}"
+                                    {% endif %}>
+                                    {% if row[column] is none %}
+                                        <span class="text-muted">NULL</span>
+                                    {% elif 'info' in column.lower() or 'request' in column.lower() or 'response' in column.lower() %}
+                                        <span title="Click to view JSON">{{ row[column]|truncate(50) }}</span>
+                                    {% elif column.lower().endswith('date') or column.lower().endswith('time') or column.lower().endswith('at') %}
+                                        {{ row[column].strftime('%Y-%m-%d %H:%M:%S') if row[column] else '' }}
+                                    {% elif column.lower() == 'pnl' %}
+                                        <span class="{% if row[column] > 0 %}text-success{% elif row[column] < 0 %}text-danger{% endif %}">
+                                            {{ row[column] }}
+                                        </span>
+                                    {% elif column.lower() == 'positiontype' or column.lower() == 'eventpos' %}
+                                        <span class="badge {% if row[column] == 'long' %}position-long{% elif row[column] == 'short' %}position-short{% else %}position-none{% endif %}">
+                                            {{ row[column] }}
+                                        </span>
+                                    {% else %}
+                                        {{ row[column] }}
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="{{ columns|length }}" class="text-center py-3">No data found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination (simplified for this example) -->
+                <div class="d-flex justify-content-between align-items-center p-3 border-top" style="border-color: var(--border-color)">
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Previous</button>
+                    <span>Page 1 of 1</span>
+                    <button class="btn btn-sm btn-outline-secondary" disabled>Next</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- JSON View Modal -->
+<div class="modal fade json-view-modal" id="jsonModal" tabindex="-1" aria-labelledby="jsonModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jsonModalLabel">JSON Data</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="jsonContent"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" id="copyJson">Copy JSON</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle JSON cell clicks
+        const jsonModal = document.getElementById('jsonModal');
+        if (jsonModal) {
+            jsonModal.addEventListener('show.bs.modal', function (event) {
+                const button = event.relatedTarget;
+                const jsonData = button.getAttribute('data-json');
+                const title = button.getAttribute('data-title');
+                
+                const modalTitle = jsonModal.querySelector('.modal-title');
+                const jsonContent = document.getElementById('jsonContent');
+                
+                modalTitle.textContent = title;
+                
+                try {
+                    // Parse and format JSON
+                    const formatted = JSON.stringify(JSON.parse(jsonData), null, 2);
+                    jsonContent.textContent = formatted;
+                } catch (e) {
+                    jsonContent.textContent = jsonData || 'Invalid JSON';
+                }
+            });
+            
+            // Copy JSON button
+            const copyButton = document.getElementById('copyJson');
+            if (copyButton) {
+                copyButton.addEventListener('click', function() {
+                    const jsonContent = document.getElementById('jsonContent');
+                    navigator.clipboard.writeText(jsonContent.textContent).then(function() {
+                        copyButton.textContent = 'Copied!';
+                        setTimeout(function() {
+                            copyButton.textContent = 'Copy JSON';
+                        }, 2000);
+                    });
+                });
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,308 @@
+{% extends "base.html" %}
+
+{% block title %}Trading Dashboard{% endblock %}
+
+{% block content %}
+<h1 class="mb-4">Trading Dashboard</h1>
+
+<!-- Summary Cards -->
+<div class="row mb-4">
+    {% for symbol_full in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'] %}
+        {% set symbol = symbol_full.replace('USDT', '') %}
+        <div class="col-md-4">
+            <div class="card stats-card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ symbol }}</h5>
+                    
+                    {% if performance[symbol]['profit'] is defined %}
+                        <div class="stats-value {% if performance[symbol]['profit'] > 0 %}text-success{% elif performance[symbol]['profit'] < 0 %}text-danger{% endif %}">
+                            ${{ "%.2f"|format(performance[symbol]['profit']) }}
+                        </div>
+                        <div class="stats-label {% if performance[symbol]['profit_percentage'] > 0 %}text-success{% elif performance[symbol]['profit_percentage'] < 0 %}text-danger{% endif %}">
+                            {{ "%.2f"|format(performance[symbol]['profit_percentage']) }}%
+                        </div>
+                    {% else %}
+                        <div class="stats-value">$0.00</div>
+                        <div class="stats-label">0.00%</div>
+                    {% endif %}
+                    
+                    <hr>
+                    <div class="row">
+                        <div class="col">
+                            <div class="small">Initial</div>
+                            <div>${{ "%.2f"|format(performance[symbol]['initial']) }}</div>
+                        </div>
+                        <div class="col">
+                            <div class="small">Current</div>
+                            <div>${{ "%.2f"|format(performance[symbol]['current']) }}</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer">
+                    <a href="/symbol/{{ symbol_full }}" class="btn btn-sm btn-primary w-100">View Details</a>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+<div class="row">
+    <!-- Left Column -->
+    <div class="col-md-8">
+        <!-- Latest Trades -->
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Latest Trades</span>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Price</th>
+                                <th>Quantity</th>
+                                <th>PnL</th>
+                                <th>Time</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for trade in latest_trades %}
+                            <tr class="trade-row {{ trade.positionType }}">
+                                <td>{{ trade.symbol }}</td>
+                                <td>
+                                    <span class="badge {% if trade.positionType == 'long' %}position-long{% elif trade.positionType == 'short' %}position-short{% else %}position-none{% endif %}">
+                                        {{ trade.positionType }}
+                                    </span>
+                                </td>
+                                <td>${{ "%.2f"|format(trade.price) }}</td>
+                                <td>{{ trade.quantity }}</td>
+                                <td class="{% if trade.pnl > 0 %}text-success{% elif trade.pnl < 0 %}text-danger{% endif %}">
+                                    {% if trade.pnl %}
+                                        {{ "%.4f"|format(trade.pnl) }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td>{{ trade.executionTime.strftime('%Y-%m-%d %H:%M') if trade.executionTime else '-' }}</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center">No trades found</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Chart -->
+        <div class="card">
+            <div class="card-header">Performance Chart</div>
+            <div class="card-body">
+                <canvas id="performanceChart" height="250"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column -->
+    <div class="col-md-4">
+        <!-- Trading Statistics -->
+        {% for symbol_full in ['BTCUSDT', 'ETHUSDT', 'SOLUSDT'] %}
+            {% set symbol = symbol_full.replace('USDT', '') %}
+            <div class="card mb-4">
+                <div class="card-header">{{ symbol }} Trading Stats</div>
+                <div class="card-body">
+                    {% if stats[symbol_full] is defined %}
+                        <div class="row text-center">
+                            <div class="col">
+                                <div class="stats-value">{{ stats[symbol_full].trade_count or 0 }}</div>
+                                <div class="small">Trades</div>
+                            </div>
+                            <div class="col">
+                                <div class="stats-value text-success">{{ stats[symbol_full].profitable_trades or 0 }}</div>
+                                <div class="small">Wins</div>
+                            </div>
+                            <div class="col">
+                                <div class="stats-value text-danger">{{ stats[symbol_full].loss_trades or 0 }}</div>
+                                <div class="small">Losses</div>
+                            </div>
+                        </div>
+                        {% if stats[symbol_full].trade_count and stats[symbol_full].trade_count > 0 %}
+                            <div class="progress mt-3" style="height: 6px;">
+                                {% set win_rate = (stats[symbol_full].profitable_trades or 0) / stats[symbol_full].trade_count * 100 %}
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ win_rate }}%;" 
+                                     aria-valuenow="{{ win_rate }}" aria-valuemin="0" aria-valuemax="100"></div>
+                            </div>
+                            <div class="small text-center mt-1">Win Rate: {{ "%.1f"|format(win_rate) }}%</div>
+                        {% endif %}
+                        <div class="text-center mt-3">
+                            <span class="h4 {% if stats[symbol_full].total_pnl > 0 %}text-success{% elif stats[symbol_full].total_pnl < 0 %}text-danger{% endif %}">
+                                {{ "%.4f"|format(stats[symbol_full].total_pnl or 0) }}
+                            </span>
+                            <div class="small">Total PnL</div>
+                        </div>
+                    {% else %}
+                        <div class="text-center">No trading data available</div>
+                    {% endif %}
+                </div>
+            </div>
+        {% endfor %}
+
+        <!-- Recent Decisions -->
+        <div class="card">
+            <div class="card-header">Recent Decisions</div>
+            <div class="card-body p-0">
+                <div class="list-group list-group-flush">
+                    {% for decision in recent_decisions %}
+                    <div class="list-group-item" style="background-color: transparent; border-color: var(--border-color);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">{{ decision.occurUtcDate.strftime('%H:%M:%S') }}</small>
+                            <span class="badge {% if decision.eventPos == 'long' %}position-long{% elif decision.eventPos == 'short' %}position-short{% else %}position-none{% endif %}">
+                                {{ decision.eventPos or 'close' }}
+                            </span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-1">
+                            <span>{{ decision.eventSymbol }}</span>
+                            <span>{{ decision.eventName }}</span>
+                        </div>
+                        {% if decision.prAnswer %}
+                        <div class="small mt-1">
+                            Answer: <span class="{% if decision.prAnswer == 'yes' %}text-success{% else %}text-danger{% endif %}">{{ decision.prAnswer }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="list-group-item" style="background-color: transparent; border-color: var(--border-color);">
+                        No recent decisions
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    // Sample data for the performance chart
+    // In a real application, this would come from an API
+    const ctx = document.getElementById('performanceChart').getContext('2d');
+    
+    // Create dummy data for demonstration
+    const labels = [];
+    const ethData = [];
+    const btcData = [];
+    const solData = [];
+    
+    // Generate last 30 days
+    for (let i = 29; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        labels.push(date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }));
+        
+        // Simulate cumulative performance
+        const ethBase = Math.random() * 10 - 3;  // Random base between -3 and 7
+        const btcBase = Math.random() * 12 - 4;  // Random base between -4 and 8
+        const solBase = Math.random() * 15 - 6;  // Random base between -6 and 9
+        
+        if (i === 29) {
+            ethData.push(ethBase);
+            btcData.push(btcBase);
+            solData.push(solBase);
+        } else {
+            const ethChange = Math.random() * 2 - 0.8;  // Random change between -0.8 and 1.2
+            const btcChange = Math.random() * 2.5 - 1;  // Random change between -1 and 1.5
+            const solChange = Math.random() * 3 - 1.2;  // Random change between -1.2 and 1.8
+            
+            ethData.push(ethData[ethData.length - 1] + ethChange);
+            btcData.push(btcData[btcData.length - 1] + btcChange);
+            solData.push(solData[solData.length - 1] + solChange);
+        }
+    }
+    
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [
+                {
+                    label: 'ETH',
+                    data: ethData,
+                    borderColor: '#4caf50',
+                    backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                },
+                {
+                    label: 'BTC',
+                    data: btcData,
+                    borderColor: '#ff9800',
+                    backgroundColor: 'rgba(255, 152, 0, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                },
+                {
+                    label: 'SOL',
+                    data: solData,
+                    borderColor: '#2196f3',
+                    backgroundColor: 'rgba(33, 150, 243, 0.1)',
+                    tension: 0.3,
+                    fill: false,
+                    borderWidth: 2,
+                    pointRadius: 0,
+                    pointHoverRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                    labels: {
+                        color: '#e0e0e0'
+                    }
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false
+                }
+            },
+            scales: {
+                x: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#a0a0a0'
+                    }
+                },
+                y: {
+                    grid: {
+                        color: 'rgba(255, 255, 255, 0.1)'
+                    },
+                    ticks: {
+                        color: '#a0a0a0'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Profit/Loss (%)',
+                        color: '#e0e0e0'
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}
