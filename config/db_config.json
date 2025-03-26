@@ -1,7 +1,0 @@
- {
-    "host": "localhost",
-    "user": "root",
-    "password": "password",
-    "database": "trading_system",
-    "port": 3306
-}
