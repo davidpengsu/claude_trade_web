@@ -210,9 +210,10 @@ function displayOpenPositions(positions) {
         const positionType = position.positionType === 'long' ? 'position-long' : 'position-short';
         const positionIcon = position.positionType === 'long' ? 'fa-long-arrow-alt-up' : 'fa-long-arrow-alt-down';
         const symbolClass = `symbol-icon-${position.symbol.toLowerCase().substring(0, 3)}`;
-        const positionTypeKorean = position.positionType === 'long' ? '롱' : '숏';
-        const sideKorean = position.side === 'Buy' ? '매수' : '매도';
-        
+        const positionTypeKorean = position.positionType === 'long' ? '롱' : '숏'
+        const sideKorean = position.side === 'Buy' ? '포지션' : '포지션';
+        // const sideKorean = position.side === 'Buy' ? '매수' : '매도';
+
         html += `
         <div class="trade-row">
             <div class="d-flex justify-content-between align-items-center mb-2">
@@ -293,7 +294,7 @@ function displayClosedPositions(positions) {
         const pnlIcon = position.pnl >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
         const symbolClass = `symbol-icon-${position.symbol.toLowerCase().substring(0, 3)}`;
         const positionTypeKorean = position.positionType === 'long' ? '롱' : '숏';
-        const sideKorean = position.side === 'Buy' ? '매수' : '매도';
+        const sideKorean = position.side === 'Buy' ? '포지션' : '포지션';
         
         html += `
         <div class="trade-row">
