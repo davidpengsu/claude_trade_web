@@ -282,3 +282,98 @@ body {
     background-color: var(--card-bg);
     opacity: 0.5;
 }
+
+/* 새로고침 버튼 스타일 */
+#manualRefreshBtn {
+    background-color: var(--primary-color);
+    color: #000;
+    border: none;
+    transition: all 0.2s ease;
+}
+
+#manualRefreshBtn:hover {
+    background-color: var(--secondary-color);
+}
+
+#manualRefreshBtn:active {
+    transform: scale(0.95);
+}
+
+/* 새로고침 아이콘 애니메이션만 적용 */
+#manualRefreshBtn i.fa-spin {
+    animation: spin 1s linear infinite;
+}
+
+/* 자동 새로고침 토글 스위치 스타일 */
+.form-check-input {
+    background-color: var(--border-color);
+    border-color: var(--border-color);
+}
+
+.form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.form-check-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+/* 상태 뱃지 스타일 */
+#autoRefreshStatus .badge {
+    font-weight: 500;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+#refreshCountdown {
+    display: inline-block;
+    min-width: 34px;
+    text-align: center;
+    font-weight: 600;
+    background-color: rgba(255, 255, 255, 0.25);
+    border-radius: 10px;
+    padding: 1px 6px;
+}
+
+/* Toastify 커스텀 스타일 */
+.toastify {
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+    padding: 16px;
+    font-family: 'Pretendard', 'Apple SD Gothic Neo', sans-serif;
+    border-radius: 8px;
+    min-width: 280px;
+    max-width: 320px;
+    border-left: 5px solid rgba(255, 255, 255, 0.3);
+    backdrop-filter: blur(10px);
+}
+
+.toastify-content {
+    display: flex;
+    align-items: center;
+}
+
+.toastify-close {
+    opacity: 0.7;
+    transition: all 0.2s ease;
+}
+
+.toastify-close:hover {
+    opacity: 1;
+}
+
+/* 로딩 스피너 애니메이션 */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.loading .fa-spinner {
+    animation: spin 1.5s linear infinite;
+}

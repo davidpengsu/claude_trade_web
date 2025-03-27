@@ -88,8 +88,8 @@ def process_trades(trades):
                    'entry_price' in t['additionalInfo'] and 
                    'exit_price' in t['additionalInfo']]
     
-    # Identify entry trades (CLOSED status)
-    entry_trades = [t for t in trades if t['orderStatus'] == 'CLOSED']
+    # Identify entry trades (CLOSED or OPEN status)
+    entry_trades = [t for t in trades if t['orderStatus'] in ['CLOSED', 'OPEN']]
     
     # Match entry and exit trades
     closed_positions = []
