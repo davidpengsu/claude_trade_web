@@ -6,267 +6,8 @@
     <title>암호화폐 트레이딩 대시보드</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        :root {
-            --primary-color: #3182f6;
-            --secondary-color: #1c64f2;
-            --accent-color: #4f46e5;
-            --dark-bg: #111827;
-            --card-bg: #1f2937;
-            --text-primary: #f9fafb;
-            --text-secondary: #d1d5db;
-            --success-color: #10b981;
-            --danger-color: #ef4444;
-        }
-        
-        body {
-            background-color: var(--dark-bg);
-            color: var(--text-primary);
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            margin: 0;
-            padding: 0;
-            line-height: 1.6;
-        }
-        
-        .navbar {
-            background-color: var(--card-bg);
-            border-bottom: 1px solid #333;
-            padding: 15px 0;
-        }
-        
-        .navbar-brand {
-            color: var(--primary-color);
-            font-weight: bold;
-            letter-spacing: 1px;
-            font-size: 1.5rem;
-        }
-        
-        .navbar-brand i {
-            margin-right: 10px;
-            color: var(--accent-color);
-        }
-        
-        .card {
-            background-color: var(--card-bg);
-            border: none;
-            border-radius: 16px;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-            margin-bottom: 25px;
-            transition: all 0.3s ease;
-            overflow: hidden;
-        }
-        
-        .card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 12px 25px rgba(0, 0, 0, 0.2);
-        }
-        
-        .card-header {
-            background: linear-gradient(45deg, rgba(244, 114, 182, 0.15), rgba(139, 92, 246, 0.15));
-            border-bottom: 1px solid #333;
-            color: var(--primary-color);
-            font-weight: bold;
-            padding: 15px 20px;
-            font-size: 1.2rem;
-        }
-        
-        .card-header i {
-            margin-right: 10px;
-            opacity: 0.8;
-        }
-        
-        .card-body {
-            padding: 20px;
-        }
-        
-        .btn-primary {
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            border: none;
-            border-radius: 30px;
-            padding: 8px 20px;
-            transition: all 0.3s ease;
-            font-weight: 500;
-            box-shadow: 0 4px 10px rgba(244, 114, 182, 0.2);
-        }
-        
-        .btn-primary:hover {
-            background: linear-gradient(45deg, var(--accent-color), var(--primary-color));
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(244, 114, 182, 0.3);
-        }
-        
-        .btn-outline-primary {
-            color: var(--primary-color);
-            border: 2px solid var(--primary-color);
-            border-radius: 30px;
-            padding: 7px 18px;
-            background: transparent;
-            transition: all 0.3s ease;
-            font-weight: 500;
-        }
-        
-        .btn-outline-primary:hover {
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            border-color: transparent;
-            color: white;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 15px rgba(244, 114, 182, 0.3);
-        }
-        
-        .symbol-btn {
-            margin-right: 12px;
-            margin-bottom: 12px;
-            padding: 8px 20px;
-            border-radius: 30px;
-            font-size: 0.9rem;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        
-        .symbol-btn.active {
-            background: linear-gradient(45deg, var(--primary-color), var(--accent-color));
-            color: white;
-            border-color: transparent;
-            box-shadow: 0 6px 15px rgba(244, 114, 182, 0.3);
-        }
-        
-        .profit {
-            color: var(--success-color);
-            font-weight: bold;
-        }
-        
-        .loss {
-            color: var(--danger-color);
-            font-weight: bold;
-        }
-        
-        .trade-row {
-            border-bottom: 1px solid #333;
-            padding: 15px 0;
-            transition: all 0.2s ease;
-        }
-        
-        .trade-row:hover {
-            background-color: rgba(244, 114, 182, 0.05);
-        }
-        
-        .trade-row:last-child {
-            border-bottom: none;
-        }
-        
-        .position-badge {
-            padding: 5px 15px;
-            border-radius: 20px;
-            font-size: 0.8rem;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-            margin-left: 10px;
-            display: inline-block;
-        }
-        
-        .position-long {
-            background-color: rgba(16, 185, 129, 0.15);
-            color: var(--success-color);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-        }
-        
-        .position-short {
-            background-color: rgba(239, 68, 68, 0.15);
-            color: var(--danger-color);
-            border: 1px solid rgba(239, 68, 68, 0.3);
-        }
-        
-        .empty-state {
-            text-align: center;
-            padding: 50px 0;
-            color: var(--text-secondary);
-            font-style: italic;
-        }
-        
-        .loading {
-            text-align: center;
-            padding: 30px;
-            color: var(--primary-color);
-        }
-        
-        .loading i {
-            animation: spin 1s linear infinite;
-            font-size: 2rem;
-            margin-bottom: 15px;
-            display: block;
-        }
-        
-        @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .symbol-icon {
-            width: 24px;
-            height: 24px;
-            display: inline-block;
-            text-align: center;
-            margin-right: 8px;
-            font-weight: bold;
-            border-radius: 50%;
-            line-height: 24px;
-            font-size: 0.8rem;
-        }
-        
-        .symbol-icon-eth {
-            background-color: rgba(98, 126, 234, 0.2);
-            color: #627eea;
-        }
-        
-        .symbol-icon-btc {
-            background-color: rgba(247, 147, 26, 0.2);
-            color: #f7931a;
-        }
-        
-        .symbol-icon-sol {
-            background-color: rgba(0, 163, 255, 0.2);
-            color: #00a3ff;
-        }
-        
-        .data-label {
-            color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 3px;
-        }
-        
-        .data-value {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        
-        .badge-time {
-            background-color: rgba(139, 92, 246, 0.2);
-            color: #a78bfa;
-            border-radius: 20px;
-            padding: 3px 10px;
-            font-size: 0.75rem;
-            border: 1px solid rgba(139, 92, 246, 0.3);
-        }
-        
-        #openPositionsContainer,
-        #closedPositionsContainer {
-            min-height: 200px;
-        }
-        
-        .dashboard-title {
-            color: var(--primary-color);
-            font-weight: 600;
-            margin-bottom: 5px;
-            font-size: 1.1rem;
-            letter-spacing: 0.5px;
-        }
-        
-        .dashboard-subtitle {
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            margin-bottom: 20px;
-        }
-    </style>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard-dynamic-subset.css" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
 </head>
 <body>
     <nav class="navbar navbar-expand-lg navbar-dark mb-4">
@@ -284,7 +25,7 @@
                 <p class="dashboard-subtitle">현재 오픈 포지션 및 거래 내역을 확인하세요</p>
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="mb-3"><i class="fas fa-filter" style="color: var(--primary-color);"></i> 심볼별 필터링</h5>
+                        <h5 class="mb-3" style="font-size: 1rem; font-weight: 500;"><i class="fas fa-filter me-2" style="color: var(--text-secondary);"></i> 심볼별 필터링</h5>
                         <div id="symbolFilters">
                             <button class="btn btn-outline-primary symbol-btn active" data-symbol="all">전체 심볼</button>
                             {% for symbol in symbols %}
@@ -303,12 +44,12 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <i class="fas fa-arrow-trend-up"></i> 오픈 포지션
+                        <i class="fas fa-long-arrow-alt-up"></i> 오픈 포지션
                     </div>
                     <div class="card-body">
                         <div id="openPositionsContainer">
                             <div class="loading">
-                                <i class="fas fa-spinner"></i>
+                                <i class="fas fa-spinner fa-spin mb-3" style="font-size: 2rem;"></i>
                                 포지션 로딩 중...
                             </div>
                         </div>
@@ -319,14 +60,33 @@
             <div class="col-md-6">
                 <div class="card">
                     <div class="card-header">
-                        <i class="fas fa-clock-rotate-left"></i> 클로즈 포지션
+                        <i class="fas fa-history"></i> 클로즈 포지션
                     </div>
                     <div class="card-body">
                         <div id="closedPositionsContainer">
                             <div class="loading">
-                                <i class="fas fa-spinner"></i>
+                                <i class="fas fa-spinner fa-spin mb-3" style="font-size: 2rem;"></i>
                                 포지션 로딩 중...
                             </div>
+                        </div>
+                        <div id="paginationContainer" class="d-flex justify-content-center mt-4" style="display: none !important;">
+                            <nav aria-label="페이지 네비게이션">
+                                <ul class="pagination pagination-sm">
+                                    <li class="page-item disabled">
+                                        <a class="page-link" href="javascript:void(0);" id="prevPage" aria-label="이전">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item active"><a class="page-link" href="javascript:void(0);" data-page="1">1</a></li>
+                                    <li class="page-item"><a class="page-link" href="javascript:void(0);" data-page="2">2</a></li>
+                                    <li class="page-item"><a class="page-link" href="javascript:void(0);" data-page="3">3</a></li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="javascript:void(0);" id="nextPage" aria-label="다음">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                </ul>
+                            </nav>
                         </div>
                     </div>
                 </div>
@@ -335,248 +95,6 @@
     </div>
     
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load all trades initially
-            loadTrades('all');
-            
-            // Symbol filter buttons
-            const symbolButtons = document.querySelectorAll('.symbol-btn');
-            symbolButtons.forEach(button => {
-                button.addEventListener('click', function() {
-                    symbolButtons.forEach(btn => btn.classList.remove('active'));
-                    this.classList.add('active');
-                    loadTrades(this.dataset.symbol);
-                });
-            });
-        });
-        
-        function loadTrades(symbol) {
-            const endpoint = symbol === 'all' ? '/api/trades' : `/api/trades/${symbol}`;
-            
-            document.getElementById('openPositionsContainer').innerHTML = `
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    포지션 로딩 중...
-                </div>
-            `;
-            document.getElementById('closedPositionsContainer').innerHTML = `
-                <div class="loading">
-                    <i class="fas fa-spinner"></i>
-                    포지션 로딩 중...
-                </div>
-            `;
-            
-            fetch(endpoint)
-                .then(response => response.json())
-                .then(data => {
-                    displayOpenPositions(data.open_positions);
-                    displayClosedPositions(data.closed_positions);
-                })
-                .catch(error => {
-                    console.error('Error fetching trades:', error);
-                    document.getElementById('openPositionsContainer').innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-exclamation-circle"></i>
-                            데이터 로딩 오류
-                        </div>
-                    `;
-                    document.getElementById('closedPositionsContainer').innerHTML = `
-                        <div class="empty-state">
-                            <i class="fas fa-exclamation-circle"></i>
-                            데이터 로딩 오류
-                        </div>
-                    `;
-                });
-        }
-        
-        function displayOpenPositions(positions) {
-            const container = document.getElementById('openPositionsContainer');
-            
-            if (positions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-info-circle mb-2" style="font-size: 2rem; display: block; color: var(--text-secondary);"></i>
-                        오픈 포지션이 없습니다
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            positions.forEach(position => {
-                const positionType = position.positionType === 'long' ? 'position-long' : 'position-short';
-                const positionIcon = position.positionType === 'long' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
-                const symbolClass = `symbol-icon-${position.symbol.toLowerCase().substring(0, 3)}`;
-                const positionTypeKorean = position.positionType === 'long' ? '롱' : '숏';
-                const sideKorean = position.side === 'Buy' ? '매수' : '매도';
-                
-                html += `
-                <div class="trade-row">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <span class="symbol-icon ${symbolClass}">${position.symbol.substring(0, 1)}</span>
-                            <strong>${position.symbol}</strong>
-                            <span class="position-badge ${positionType}">
-                                <i class="fas ${positionIcon} me-1"></i>
-                                ${positionTypeKorean} ${sideKorean}
-                            </span>
-                        </div>
-                        <div>
-                            <span class="badge-time">
-                                <i class="far fa-clock me-1"></i>
-                                ${formatDate(position.entry_time)}
-                            </span>
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-6 col-md-4">
-                            <div class="data-label">진입 가격</div>
-                            <div class="data-value">${formatPrice(position.price)} USD</div>
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <div class="data-label">수량</div>
-                            <div class="data-value">${formatQuantity(position.quantity)}</div>
-                        </div>
-                        <div class="col-6 col-md-4">
-                            <div class="data-label">레버리지</div>
-                            <div class="data-value">${position.leverage}x</div>
-                        </div>
-                        <div class="col-6 col-md-6">
-                            <div class="data-label">익절가</div>
-                            <div class="data-value">${position.takeProfit ? formatPrice(position.takeProfit) + ' USD' : '설정 안됨'}</div>
-                        </div>
-                        <div class="col-6 col-md-6">
-                            <div class="data-label">손절가</div>
-                            <div class="data-value">${position.stopLoss ? formatPrice(position.stopLoss) + ' USD' : '설정 안됨'}</div>
-                        </div>
-                    </div>
-                </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        function displayClosedPositions(positions) {
-            const container = document.getElementById('closedPositionsContainer');
-            
-            if (positions.length === 0) {
-                container.innerHTML = `
-                    <div class="empty-state">
-                        <i class="fas fa-info-circle mb-2" style="font-size: 2rem; display: block; color: var(--text-secondary);"></i>
-                        클로즈된 포지션이 없습니다
-                    </div>
-                `;
-                return;
-            }
-            
-            let html = '';
-            positions.forEach(position => {
-                const positionType = position.positionType === 'long' ? 'position-long' : 'position-short';
-                const positionIcon = position.positionType === 'long' ? 'fa-arrow-trend-up' : 'fa-arrow-trend-down';
-                const pnlClass = position.pnl >= 0 ? 'profit' : 'loss';
-                const pnlIcon = position.pnl >= 0 ? 'fa-arrow-up' : 'fa-arrow-down';
-                const symbolClass = `symbol-icon-${position.symbol.toLowerCase().substring(0, 3)}`;
-                const positionTypeKorean = position.positionType === 'long' ? '롱' : '숏';
-                const sideKorean = position.side === 'Buy' ? '매수' : '매도';
-                
-                html += `
-                <div class="trade-row">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div>
-                            <span class="symbol-icon ${symbolClass}">${position.symbol.substring(0, 1)}</span>
-                            <strong>${position.symbol}</strong>
-                            <span class="position-badge ${positionType}">
-                                <i class="fas ${positionIcon} me-1"></i>
-                                ${positionTypeKorean} ${sideKorean}
-                            </span>
-                        </div>
-                        <div class="${pnlClass}">
-                            <i class="fas ${pnlIcon}"></i>
-                            ${formatPnl(position.pnl)}
-                        </div>
-                    </div>
-                    <div class="row g-3 mt-1">
-                        <div class="col-6 col-md-3">
-                            <div class="data-label">진입 가격</div>
-                            <div class="data-value">${formatPrice(position.entry_price)} USD</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="data-label">청산 가격</div>
-                            <div class="data-value">${formatPrice(position.exit_price)} USD</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="data-label">수량</div>
-                            <div class="data-value">${formatQuantity(position.quantity)}</div>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <div class="data-label">레버리지</div>
-                            <div class="data-value">${position.leverage}x</div>
-                        </div>
-                        <div class="col-6">
-                            <div class="data-label">오픈 시간</div>
-                            <div class="data-value">
-                                <i class="far fa-calendar me-1" style="opacity: 0.6;"></i>
-                                ${formatDateTime(position.entry_time)}
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="data-label">클로즈 시간</div>
-                            <div class="data-value">
-                                <i class="far fa-calendar-check me-1" style="opacity: 0.6;"></i>
-                                ${formatDateTime(position.exit_time)}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                `;
-            });
-            
-            container.innerHTML = html;
-        }
-        
-        function formatPrice(price) {
-            return parseFloat(price).toFixed(2);
-        }
-        
-        function formatQuantity(qty) {
-            return parseFloat(qty).toFixed(8);
-        }
-        
-        function formatPnl(pnl) {
-            const value = parseFloat(pnl);
-            return (value >= 0 ? '+' : '') + value.toFixed(8);
-        }
-        
-        function formatDate(dateStr) {
-            if (!dateStr) return 'N/A';
-            
-            const date = new Date(dateStr);
-            const options = { 
-                month: 'short', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit'
-            };
-            
-            return date.toLocaleDateString('en-US', options);
-        }
-        
-        function formatDateTime(dateStr) {
-            if (!dateStr) return 'N/A';
-            
-            const date = new Date(dateStr);
-            const options = { 
-                month: 'short', 
-                day: 'numeric', 
-                hour: '2-digit', 
-                minute: '2-digit',
-                second: '2-digit'
-            };
-            
-            return date.toLocaleDateString('en-US', options);
-        }
-    </script>
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 </body>
 </html>
