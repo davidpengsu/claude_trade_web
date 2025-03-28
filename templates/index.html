@@ -32,6 +32,74 @@
             <div class="col-12">
                 <h2 class="dashboard-title">트레이딩 포지션</h2>
                 <p class="dashboard-subtitle">현재 오픈 포지션 및 거래 내역을 확인하세요</p>
+                
+                <!-- 심볼별 PnL 요약 카드 추가 -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <i class="fas fa-chart-pie me-2"></i> 심볼별 손익 요약
+                    </div>
+                    <div class="card-body">
+                        <div class="row" id="pnlSummaryContainer">
+                            {% if pnl_summary and pnl_summary|length > 0 %}
+                                {% for item in pnl_summary %}
+                                <div class="col-md-3 col-sm-6 mb-3">
+                                    <div class="pnl-summary-card {{ 'profit-card' if item.total_pnl >= 0 else 'loss-card' }}">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <div class="symbol-name">
+                                                <span class="symbol-icon symbol-icon-{{ item.symbol[:3].lower() }}">{{ item.symbol[:1] }}</span>
+                                                <strong>{{ item.symbol }}</strong>
+                                            </div>
+                                            <div class="pnl-value {{ 'profit' if item.total_pnl >= 0 else 'loss' }}">
+                                                <i class="fas {{ 'fa-arrow-up' if item.total_pnl >= 0 else 'fa-arrow-down' }}"></i>
+                                                {{ "%.8f"|format(item.total_pnl) }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            {% else %}
+                                <div class="col-12">
+                                    <div class="empty-state">
+                                        <i class="fas fa-chart-line mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
+                                        PnL 데이터 로드 중...
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-body">
+                        <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">
+                            <h5 class="mb-0 me-2" style="font-size: 1rem; font-weight: 500;">
+                                <i class="fas fa-filter me-2" style="color: var(--text-secondary);"></i> 심볼별 필터링
+                            </h5>
+                            <!-- 자동 새로고침 토글과 수동 새로고침 버튼 추가 -->
+                            <div class="d-flex align-items-center mt-2 mt-sm-0">
+                                <div class="form-check form-switch me-3">
+                                    <input class="form-check-input" type="checkbox" id="autoRefreshToggle" checked>
+                                    <label class="form-check-label" for="autoRefreshToggle" style="color: var(--text-secondary); font-size: 0.875rem;">자동 새로고침</label>
+                                </div>
+                                <button id="manualRefreshBtn" class="btn btn-primary btn-sm" style="background-color: var(--primary-color); color: #000; border: none;">
+                                    <i class="fas fa-sync-alt me-1"></i> 새로고침
+                                </button>
+                            </div>
+                        </div>
+                        <div id="symbolFilters" class="d-flex flex-wrap">
+                            <button class="btn btn-outline-primary symbol-btn active" data-symbol="all">전체 심볼</button>
+                            {% for symbol in symbols %}
+                            <button class="btn btn-outline-primary symbol-btn" data-symbol="{{ symbol }}">
+                                <span class="symbol-icon symbol-icon-{{ symbol[:3].lower() }}">{{ symbol[:1] }}</span>
+                                {{ symbol }}
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+                
                 <div class="card">
                     <div class="card-body">
                         <div class="d-flex flex-wrap justify-content-between align-items-center mb-3">

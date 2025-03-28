@@ -12,6 +12,7 @@ let isAutoRefreshEnabled = localStorage.getItem('autoRefreshEnabled') !== null
     : true;
 let currentSymbol = 'all';
 let timeUntilNextRefresh = 300; // 5분 = 300초
+let pnlSummaryData = []; // 심볼별 PnL 데이터 저장용
 
 document.addEventListener('DOMContentLoaded', function() {
     // 자동 새로고침 상태 초기화
@@ -19,6 +20,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Load all trades initially
     loadTrades('all');
+
+    oadPnlSummary();
     
     // Symbol filter buttons
     const symbolButtons = document.querySelectorAll('.symbol-btn');
@@ -28,6 +31,7 @@ document.addEventListener('DOMContentLoaded', function() {
             this.classList.add('active');
             currentSymbol = this.dataset.symbol;
             loadTrades(currentSymbol);
+            highlightSelectedSymbolPnL(currentSymbol);
         });
     });
     
@@ -69,6 +73,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
             showToast('데이터를 새로고침 중입니다...', 'info');
             loadTrades(currentSymbol);
+            loadPnlSummary();
             
             // 데이터 로드 후 애니메이션 중지를 위한 타이머 설정
             setTimeout(() => {
@@ -154,9 +159,146 @@ function startAutoRefresh() {
         autoRefreshInterval = setInterval(() => {
             showToast('데이터를 자동으로 새로고침 중입니다...', 'info');
             loadTrades(currentSymbol);
+            loadPnlSummary();
             // 카운트다운 리셋
             timeUntilNextRefresh = 300;
         }, 300000); // 5분
+    }
+}
+
+// 심볼별 PnL 요약 데이터 로드
+function loadPnlSummary() {
+    const pnlContainer = document.getElementById('pnlSummaryContainer');
+    if (!pnlContainer) return;
+    
+    // 로딩 상태 표시
+    pnlContainer.innerHTML = `
+        <div class="col-12">
+            <div class="loading">
+                <i class="fas fa-spinner fa-spin mb-3" style="font-size: 2rem;"></i>
+                PnL 데이터 로딩 중...
+            </div>
+        </div>
+    `;
+    
+    fetch('/api/pnl-summary')
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log("PnL 데이터 로드 완료:", data); // 디버깅용 로그
+            pnlSummaryData = data; // 데이터 저장
+            
+            if (data && data.length > 0) {
+                displayPnlSummary(data);
+                // 현재 선택된 심볼이 있다면 해당 카드 하이라이트
+                if (currentSymbol !== 'all') {
+                    highlightSelectedSymbolPnL(currentSymbol);
+                }
+            } else {
+                pnlContainer.innerHTML = `
+                    <div class="col-12">
+                        <div class="empty-state">
+                            <i class="fas fa-chart-line mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
+                            PnL 데이터가 없거나 아직 거래 기록이 없습니다
+                        </div>
+                    </div>
+                `;
+                console.log("PnL 데이터가 없습니다");
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching PnL summary:', error);
+            pnlContainer.innerHTML = `
+                <div class="col-12">
+                    <div class="empty-state">
+                        <i class="fas fa-exclamation-circle mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
+                        PnL 데이터 로딩 오류: ${error.message}
+                    </div>
+                </div>
+            `;
+        });
+}
+
+// 심볼별 PnL 요약 표시
+function displayPnlSummary(data) {
+    const container = document.getElementById('pnlSummaryContainer');
+    if (!container) return;
+    
+    if (!data || data.length === 0) {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="fas fa-chart-line mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
+                    아직 거래 기록이 없습니다
+                </div>
+            </div>
+        `;
+        return;
+    }
+    
+    console.log("PnL 데이터 표시 중:", data);
+    
+    let html = '';
+    data.forEach(item => {
+        if (!item.symbol || item.total_pnl === undefined || item.total_pnl === null) {
+            console.warn("유효하지 않은 PnL 항목:", item);
+            return; // 이 항목은 건너뜀
+        }
+        
+        const isProfitable = item.total_pnl >= 0;
+        const symbolClass = `symbol-icon-${item.symbol.toLowerCase().substring(0, 3)}`;
+        
+        html += `
+        <div class="col-md-3 col-sm-6 mb-3" data-pnl-symbol="${item.symbol}">
+            <div class="pnl-summary-card ${isProfitable ? 'profit-card' : 'loss-card'}">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="symbol-name">
+                        <span class="symbol-icon ${symbolClass}">${item.symbol.substring(0, 1)}</span>
+                        <strong>${item.symbol}</strong>
+                    </div>
+                    <div class="pnl-value ${isProfitable ? 'profit' : 'loss'}">
+                        <i class="fas ${isProfitable ? 'fa-arrow-up' : 'fa-arrow-down'}"></i>
+                        ${formatPnl(item.total_pnl)}
+                    </div>
+                </div>
+            </div>
+        </div>
+        `;
+    });
+    
+    if (html === '') {
+        container.innerHTML = `
+            <div class="col-12">
+                <div class="empty-state">
+                    <i class="fas fa-chart-line mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
+                    유효한 PnL 데이터가 없습니다
+                </div>
+            </div>
+        `;
+    } else {
+        container.innerHTML = html;
+    }
+}
+
+// 선택된 심볼의 PnL 카드 하이라이트
+function highlightSelectedSymbolPnL(symbol) {
+    // 모든 카드의 하이라이트 제거
+    document.querySelectorAll('#pnlSummaryContainer > div').forEach(card => {
+        card.querySelector('.pnl-summary-card')?.classList.remove('highlighted-card');
+        card.style.opacity = symbol === 'all' ? '1' : '0.6';
+    });
+    
+    // 선택된 심볼이 '전체'가 아니면 해당 카드만 하이라이트
+    if (symbol !== 'all') {
+        const selectedCard = document.querySelector(`#pnlSummaryContainer > div[data-pnl-symbol="${symbol}"]`);
+        if (selectedCard) {
+            selectedCard.querySelector('.pnl-summary-card').classList.add('highlighted-card');
+            selectedCard.style.opacity = '1';
+        }
     }
 }
 

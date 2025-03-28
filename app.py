@@ -71,6 +71,55 @@ def get_symbols():
     conn.close()
     return symbols
 
+# Get unique symbols
+def get_symbols():
+    conn = get_db_connection()
+    with conn.cursor() as cursor:
+        cursor.execute("SELECT DISTINCT symbol FROM trades")
+        result = cursor.fetchall()
+        symbols = [row['symbol'] for row in result]
+    conn.close()
+    return symbols
+
+# 심볼별 총 PnL 계산
+def get_symbol_pnl_summary():
+    try:
+        conn = get_db_connection()
+        with conn.cursor() as cursor:
+            # 심볼별 총 PnL 집계
+            cursor.execute("""
+                SELECT symbol, SUM(pnl) as total_pnl
+                FROM trades 
+                WHERE pnl IS NOT NULL
+                GROUP BY symbol
+            """)
+            results = cursor.fetchall()
+            
+            # 디버깅을 위한 로그
+            print(f"PnL 요약 쿼리 결과: {results}")
+            
+        conn.close()
+        
+        # 결과가 비어있는지 확인
+        if not results:
+            print("PnL 데이터가 없습니다")
+            return []
+        
+        # 결과 정렬 (총 PnL 내림차순)
+        pnl_summary = []
+        for row in results:
+            pnl_summary.append({
+                'symbol': row['symbol'],
+                'total_pnl': row['total_pnl']
+            })
+        
+        # PnL 기준 내림차순 정렬
+        pnl_summary = sorted(pnl_summary, key=lambda x: x['total_pnl'] if x['total_pnl'] is not None else 0, reverse=True)
+        return convert_to_serializable(pnl_summary)
+    except Exception as e:
+        print(f"PnL 요약 데이터 가져오기 오류: {e}")
+        return []
+
 # Process trades to identify open and closed positions
 def process_trades(trades):
     # Parse additionalInfo JSON strings

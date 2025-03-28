@@ -385,6 +385,50 @@ body {
     animation: spin 1s linear infinite;
 }
 
+/* 심볼별 PnL 요약 카드 스타일 */
+.pnl-summary-card {
+    background-color: var(--card-header);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    padding: 15px;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.pnl-summary-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.pnl-summary-card.highlighted-card {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(240, 185, 11, 0.3);
+    border: 1px solid var(--primary-color);
+}
+
+.pnl-summary-card.profit-card {
+    border-left: 3px solid var(--success-color);
+}
+
+.pnl-summary-card.loss-card {
+    border-left: 3px solid var(--danger-color);
+}
+
+.pnl-summary-card .symbol-name {
+    display: flex;
+    align-items: center;
+}
+
+.pnl-summary-card .symbol-name strong {
+    margin-left: 5px;
+    font-size: 1.05rem;
+}
+
+.pnl-summary-card .pnl-value {
+    font-weight: 600;
+    font-size: 1.05rem;
+}
+
 /* Responsive design improvements for mobile */
 @media (max-width: 767px) {
     /* Make buttons in filters more compact */
