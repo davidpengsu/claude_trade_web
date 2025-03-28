@@ -95,8 +95,10 @@ def get_symbol_pnl_summary():
             """)
             results = cursor.fetchall()
             
-            # 디버깅을 위한 로그
+            # 더 자세한 디버깅 로그
             print(f"PnL 요약 쿼리 결과: {results}")
+            for row in results:
+                print(f"Symbol: {row['symbol']}, PnL: {row['total_pnl']}")
             
         conn.close()
         
@@ -118,10 +120,22 @@ def get_symbol_pnl_summary():
         return convert_to_serializable(pnl_summary)
     except Exception as e:
         print(f"PnL 요약 데이터 가져오기 오류: {e}")
+        import traceback
+        traceback.print_exc()
         return []
 
 # Process trades to identify open and closed positions
 def process_trades(trades):
+    """
+    Process trades to identify open and closed positions.
+    
+    This function takes a list of trades and processes them to identify:
+    1. Open positions (trades with orderStatus 'OPEN')
+    2. Closed positions (matching CLOSED and FILLED trades)
+    
+    For closed positions, it attempts to find the matching entry trade (CLOSED)
+    for each exit trade (FILLED) based on symbol, price, and chronological order.
+    """
     # Parse additionalInfo JSON strings
     for trade in trades:
         if trade['additionalInfo']:
@@ -129,11 +143,17 @@ def process_trades(trades):
                 trade['additionalInfo'] = json.loads(trade['additionalInfo'])
             except:
                 trade['additionalInfo'] = {}
+        
+        # Parse datetime for comparison purposes
+        if 'executionTime' in trade and trade['executionTime']:
+            try:
+                trade['_datetime'] = parse_datetime(trade['executionTime'])
+            except:
+                trade['_datetime'] = None
     
-    # 단순히 OPEN 상태인 거래를 오픈 포지션으로 취급
+    # 1. Extract open positions
     open_positions = [
         {
-            'trade': t,
             'symbol': t['symbol'],
             'side': t['side'],
             'positionType': t['positionType'],
@@ -147,32 +167,117 @@ def process_trades(trades):
         for t in trades if t['orderStatus'] == 'OPEN'
     ]
     
-    # 클로즈 포지션은 원래처럼 FILLED 중에서 additionalInfo에 진입/청산 가격이 있는 거래만
-    exit_trades = [t for t in trades if t['orderStatus'] == 'FILLED' and 
-                   t['additionalInfo'] and 
-                   isinstance(t['additionalInfo'], dict) and
-                   'entry_price' in t['additionalInfo'] and 
-                   'exit_price' in t['additionalInfo']]
+    # 2. Group trades by symbol and status for efficient processing
+    closed_trades = {}  # Symbol -> list of CLOSED trades
+    filled_trades = []  # List of FILLED trades with additionalInfo
     
+    for trade in trades:
+        if trade['orderStatus'] == 'CLOSED':
+            symbol = trade['symbol']
+            if symbol not in closed_trades:
+                closed_trades[symbol] = []
+            closed_trades[symbol].append(trade)
+        elif (trade['orderStatus'] == 'FILLED' and 
+              trade['additionalInfo'] and 
+              isinstance(trade['additionalInfo'], dict) and
+              'entry_price' in trade['additionalInfo'] and 
+              'exit_price' in trade['additionalInfo']):
+            filled_trades.append(trade)
+    
+    # 디버깅: 심볼별로 분류된 거래 수 출력
+    for symbol, trades_list in closed_trades.items():
+        print(f"심볼 {symbol}의 CLOSED 거래 수: {len(trades_list)}")
+    print(f"FILLED 거래 수: {len(filled_trades)}")
+    
+    # 3. Process closed positions
     closed_positions = []
-    for exit_trade in exit_trades:
-        closed_positions.append({
-            'entry_trade': {},  # 매칭된 entry_trade 정보는 더 이상 필요 없음
-            'exit_trade': exit_trade,
-            'entry_price': exit_trade['additionalInfo']['entry_price'],
-            'exit_price': exit_trade['additionalInfo']['exit_price'],
-            'pnl': exit_trade['pnl'],
-            'symbol': exit_trade['symbol'],
+    
+    for exit_trade in filled_trades:
+        symbol = exit_trade['symbol']
+        entry_price = exit_trade['additionalInfo']['entry_price']
+        exit_price = exit_trade['additionalInfo']['exit_price']
+        
+        # 디버깅: 현재 처리 중인 거래 정보 출력
+        print(f"처리 중: {symbol} 종료 거래 - 진입가: {entry_price}, 청산가: {exit_price}, 시간: {exit_trade['executionTime']}")
+        
+        # Find matching entry trade for this exit
+        best_match = None
+        min_time_diff = float('inf')
+        
+        if symbol in closed_trades:
+            # Look through all CLOSED trades for this symbol
+            for entry_trade in closed_trades[symbol]:
+                # Check price match within tolerance
+                if abs(float(entry_trade['price']) - float(entry_price)) < 0.01:
+                    # Always prefer matching by eventId if available
+                    if entry_trade['eventId'] and exit_trade['eventId'] and entry_trade['eventId'] == exit_trade['eventId']:
+                        best_match = entry_trade
+                        print(f"이벤트 ID 일치: {entry_trade['eventId']}")
+                        break
+                    
+                    # Check chronological order (entry before exit)
+                    if (entry_trade['_datetime'] and exit_trade['_datetime'] and
+                        entry_trade['_datetime'] < exit_trade['_datetime']):
+                        # Calculate time difference to find closest match
+                        time_diff = (exit_trade['_datetime'] - entry_trade['_datetime']).total_seconds()
+                        if time_diff < min_time_diff:
+                            min_time_diff = time_diff
+                            best_match = entry_trade
+                            print(f"시간 기반 매칭: 진입 {entry_trade['executionTime']} -> 청산 {exit_trade['executionTime']}")
+        
+        # Create closed position with matched entry or fallback
+        position = {
+            'symbol': symbol,
             'side': exit_trade['side'],
             'positionType': exit_trade['positionType'],
             'quantity': exit_trade['quantity'],
             'leverage': exit_trade['leverage'],
-            'entry_time': exit_trade['executionTime'],  # entry_time 정보가 없으므로 청산 시간으로 대체
+            'entry_price': entry_price,
+            'exit_price': exit_price,
+            'pnl': exit_trade['pnl'],
             'exit_time': exit_trade['executionTime']
-        })
+        }
+        
+        if best_match:
+            position['entry_time'] = best_match['executionTime']
+            print(f"매칭 성공: {symbol} 진입시간 {best_match['executionTime']} -> 청산시간 {exit_trade['executionTime']}")
+        else:
+            # No match found, use exit_time as fallback
+            position['entry_time'] = exit_trade['executionTime']
+            print(f"매칭 실패: 매칭되는 {symbol}의 CLOSED 거래를 찾지 못함. 대체 시간 사용")
+        
+        closed_positions.append(position)
     
     return open_positions, closed_positions
 
+def parse_datetime(dt_str):
+    """
+    Parse a datetime string in various formats to a datetime object.
+    
+    Tries multiple formats and returns None if parsing fails.
+    """
+    if not dt_str:
+        return None
+    
+    # Try common datetime formats
+    formats = [
+        '%Y-%m-%dT%H:%M:%S',
+        '%Y-%m-%d %H:%M:%S',
+        '%Y-%m-%dT%H:%M:%S.%f',
+        '%Y-%m-%d %H:%M:%S.%f'
+    ]
+    
+    for fmt in formats:
+        try:
+            return datetime.strptime(dt_str, fmt)
+        except ValueError:
+            continue
+    
+    # Try ISO format as last resort
+    try:
+        return datetime.fromisoformat(dt_str.replace(' ', 'T'))
+    except ValueError:
+        return None
 # Routes
 @app.route('/')
 def index():
@@ -188,8 +293,25 @@ def test():
 
 @app.route('/api/trades/<symbol>')
 def api_trades_by_symbol(symbol):
+    print(f"\n============ 심볼 필터링: {symbol} ============")
     trades = get_trades_by_symbol(symbol)
+    print(f"데이터베이스에서 검색된 {symbol} 거래 수: {len(trades)}")
+    
+    # 거래 상태별 개수 확인
+    statuses = {}
+    for trade in trades:
+        status = trade['orderStatus']
+        if status not in statuses:
+            statuses[status] = 0
+        statuses[status] += 1
+    
+    for status, count in statuses.items():
+        print(f"상태 '{status}'의 거래: {count}개")
+    
     open_positions, closed_positions = process_trades(trades)
+    print(f"처리 결과: 오픈 포지션 {len(open_positions)}개, 클로즈 포지션 {len(closed_positions)}개")
+    print(f"============ 심볼 {symbol} 처리 완료 ============\n")
+    
     return jsonify({
         'open_positions': open_positions,
         'closed_positions': closed_positions
@@ -197,12 +319,34 @@ def api_trades_by_symbol(symbol):
 
 @app.route('/api/trades')
 def api_all_trades():
+    print("\n============ 전체 거래 검색 ============")
     trades = get_all_trades()
+    print(f"데이터베이스에서 검색된 전체 거래 수: {len(trades)}")
+    
+    # 심볼별 거래 개수 확인
+    symbols = {}
+    for trade in trades:
+        symbol = trade['symbol']
+        if symbol not in symbols:
+            symbols[symbol] = 0
+        symbols[symbol] += 1
+    
+    for symbol, count in symbols.items():
+        print(f"심볼 '{symbol}'의 거래: {count}개")
+    
     open_positions, closed_positions = process_trades(trades)
+    print(f"처리 결과: 오픈 포지션 {len(open_positions)}개, 클로즈 포지션 {len(closed_positions)}개")
+    print("============ 전체 거래 처리 완료 ============\n")
+    
     return jsonify({
         'open_positions': open_positions,
         'closed_positions': closed_positions
     })
+
+@app.route('/api/pnl-summary')
+def api_pnl_summary():
+    pnl_data = get_symbol_pnl_summary()
+    return jsonify(pnl_data)
 
 if __name__ == '__main__':
     try:

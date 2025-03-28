@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Load all trades initially
     loadTrades('all');
 
-    oadPnlSummary();
+    loadPnlSummary();
     
     // Symbol filter buttons
     const symbolButtons = document.querySelectorAll('.symbol-btn');
@@ -407,6 +407,8 @@ function loadTrades(symbol) {
         document.getElementById('paginationContainer').style.display = 'none';
     }
     
+    console.log(`로딩 중: ${endpoint}`); // 디버깅 로그 추가
+    
     fetch(endpoint)
         .then(response => {
             if (!response.ok) {
@@ -415,6 +417,8 @@ function loadTrades(symbol) {
             return response.json();
         })
         .then(data => {
+            console.log(`데이터 로드 완료: ${symbol}`, data); // 디버깅 로그 추가
+            
             displayOpenPositions(data.open_positions);
             
             // 클로즈 포지션 저장 및 페이지네이션 설정
@@ -430,13 +434,13 @@ function loadTrades(symbol) {
             document.getElementById('openPositionsContainer').innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-exclamation-circle mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
-                    데이터 로딩 오류
+                    데이터 로딩 오류: ${error.message}
                 </div>
             `;
             document.getElementById('closedPositionsContainer').innerHTML = `
                 <div class="empty-state">
                     <i class="fas fa-exclamation-circle mb-3" style="font-size: 2.5rem; color: var(--text-secondary);"></i>
-                    데이터 로딩 오류
+                    데이터 로딩 오류: ${error.message}
                 </div>
             `;
             
@@ -700,12 +704,12 @@ function formatPrice(price) {
 }
 
 function formatQuantity(qty) {
-    return parseFloat(qty).toFixed(8);
+    return parseFloat(qty).toFixed(3);
 }
 
 function formatPnl(pnl) {
     const value = parseFloat(pnl);
-    return (value >= 0 ? '+' : '') + value.toFixed(8);
+    return (value >= 0 ? '+' : '') + value.toFixed(3);
 }
 
 function formatDate(dateStr) {
