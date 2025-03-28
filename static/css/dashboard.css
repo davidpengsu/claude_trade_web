@@ -377,3 +377,116 @@ body {
 .loading .fa-spinner {
     animation: spin 1.5s linear infinite;
 }
+
+/* Add to the end of dashboard.css */
+
+/* Refresh icon rotation on hover */
+#autoRefreshStatus:hover .fa-sync-alt {
+    animation: spin 1s linear infinite;
+}
+
+/* Responsive design improvements for mobile */
+@media (max-width: 767px) {
+    /* Make buttons in filters more compact */
+    .symbol-btn {
+        padding: 4px 10px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        font-size: 0.75rem;
+    }
+    
+    /* Adjust trade rows for smaller screens */
+    .trade-row {
+        padding: 16px 10px;
+    }
+    
+    /* Adjust data layout in trade rows */
+    .data-label {
+        font-size: 0.75rem;
+    }
+    
+    .data-value {
+        font-size: 0.875rem;
+    }
+    
+    /* Make sure navbar elements don't overflow */
+    .navbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    #autoRefreshStatus .badge {
+        font-size: 0.7rem;
+        padding: 6px 10px;
+    }
+    
+    /* Adjust card headers and bodies */
+    .card-header {
+        padding: 12px 15px;
+    }
+    
+    .card-body {
+        padding: 15px;
+    }
+    
+    /* Dashboard title and subtitle */
+    .dashboard-title {
+        font-size: 1.1rem;
+    }
+    
+    .dashboard-subtitle {
+        font-size: 0.85rem;
+    }
+}
+
+/* Extra small devices (phones) */
+@media (max-width: 575px) {
+    /* Further adjustments for very small screens */
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+    
+    /* Improve layout of filters section */
+    .card-body .d-flex.align-items-center {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 10px;
+    }
+    
+    .form-check.form-switch.me-3 {
+        margin-right: 0 !important;
+        margin-bottom: 8px;
+    }
+    
+    /* Adjust symbol filters */
+    #symbolFilters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+    }
+    
+    /* Make badge more compact */
+    #autoRefreshStatus .badge {
+        font-size: 0.65rem;
+        padding: 4px 8px;
+    }
+    
+    /* Adjust positioning of auto-refresh status on mobile */
+    .navbar .container {
+        flex-wrap: nowrap;
+    }
+    
+    /* Improve trade row layout on very small screens */
+    .trade-row .row {
+        margin-left: -8px;
+        margin-right: -8px;
+    }
+    
+    .trade-row .col-6, 
+    .trade-row .col-md-3, 
+    .trade-row .col-md-4,
+    .trade-row .col-md-6 {
+        padding-left: 8px;
+        padding-right: 8px;
+    }
+}

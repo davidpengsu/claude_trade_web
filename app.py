@@ -81,51 +81,7 @@ def process_trades(trades):
             except:
                 trade['additionalInfo'] = {}
     
-    # Identify exit trades (FILLED with additionalInfo containing prices)
-    exit_trades = [t for t in trades if t['orderStatus'] == 'FILLED' and 
-                   t['additionalInfo'] and 
-                   isinstance(t['additionalInfo'], dict) and
-                   'entry_price' in t['additionalInfo'] and 
-                   'exit_price' in t['additionalInfo']]
-    
-    # Identify entry trades (CLOSED or OPEN status)
-    entry_trades = [t for t in trades if t['orderStatus'] in ['CLOSED', 'OPEN']]
-    
-    # Match entry and exit trades
-    closed_positions = []
-    matched_entry_ids = set()
-    
-    for exit_trade in exit_trades:
-        # Find matching entry trade
-        matching_entry = None
-        
-        for entry_trade in entry_trades:
-            if (entry_trade['tradeId'] not in matched_entry_ids and
-                entry_trade['symbol'] == exit_trade['symbol'] and
-                entry_trade['positionType'] == exit_trade['positionType'] and
-                entry_trade['side'] != exit_trade['side']):
-                
-                matching_entry = entry_trade
-                matched_entry_ids.add(entry_trade['tradeId'])
-                break
-        
-        if matching_entry:
-            closed_positions.append({
-                'entry_trade': matching_entry,
-                'exit_trade': exit_trade,
-                'entry_price': exit_trade['additionalInfo']['entry_price'],
-                'exit_price': exit_trade['additionalInfo']['exit_price'],
-                'pnl': exit_trade['pnl'],
-                'symbol': matching_entry['symbol'],
-                'side': matching_entry['side'],
-                'positionType': matching_entry['positionType'],
-                'quantity': matching_entry['quantity'],
-                'leverage': matching_entry['leverage'],
-                'entry_time': matching_entry['executionTime'],
-                'exit_time': exit_trade['executionTime']
-            })
-    
-    # Open positions are entry trades that don't have a matching exit trade
+    # 단순히 OPEN 상태인 거래를 오픈 포지션으로 취급
     open_positions = [
         {
             'trade': t,
@@ -139,8 +95,32 @@ def process_trades(trades):
             'stopLoss': t['stopLoss'],
             'entry_time': t['executionTime']
         }
-        for t in entry_trades if t['tradeId'] not in matched_entry_ids
+        for t in trades if t['orderStatus'] == 'OPEN'
     ]
+    
+    # 클로즈 포지션은 원래처럼 FILLED 중에서 additionalInfo에 진입/청산 가격이 있는 거래만
+    exit_trades = [t for t in trades if t['orderStatus'] == 'FILLED' and 
+                   t['additionalInfo'] and 
+                   isinstance(t['additionalInfo'], dict) and
+                   'entry_price' in t['additionalInfo'] and 
+                   'exit_price' in t['additionalInfo']]
+    
+    closed_positions = []
+    for exit_trade in exit_trades:
+        closed_positions.append({
+            'entry_trade': {},  # 매칭된 entry_trade 정보는 더 이상 필요 없음
+            'exit_trade': exit_trade,
+            'entry_price': exit_trade['additionalInfo']['entry_price'],
+            'exit_price': exit_trade['additionalInfo']['exit_price'],
+            'pnl': exit_trade['pnl'],
+            'symbol': exit_trade['symbol'],
+            'side': exit_trade['side'],
+            'positionType': exit_trade['positionType'],
+            'quantity': exit_trade['quantity'],
+            'leverage': exit_trade['leverage'],
+            'entry_time': exit_trade['executionTime'],  # entry_time 정보가 없으므로 청산 시간으로 대체
+            'exit_time': exit_trade['executionTime']
+        })
     
     return open_positions, closed_positions
 
